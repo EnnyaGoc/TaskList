@@ -35,10 +35,8 @@
    especially those whose name start with YY_ or yy_.  They are
    private implementation details that can be changed or removed.  */
 
-//um arquivo de cabeçalho contendo as declarações de tokens e as definições para as variáveis e funções utilizadas.
-
-#ifndef YY_YY_TASK_TAB_H_INCLUDED
-# define YY_YY_TASK_TAB_H_INCLUDED
+#ifndef YY_YY_PARSER_TAB_H_INCLUDED
+# define YY_YY_PARSER_TAB_H_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
@@ -56,20 +54,34 @@ extern int yydebug;
     YYEOF = 0,                     /* "end of file"  */
     YYerror = 256,                 /* error  */
     YYUNDEF = 257,                 /* "invalid token"  */
-    CREATE = 258,                  /* CREATE  */
-    DELETE = 259,                  /* DELETE  */
+    ID = 258,                      /* ID  */
+    CREATE = 259,                  /* CREATE  */
     READ = 260,                    /* READ  */
-    ADD = 261,                     /* ADD  */
-    RM = 262,                      /* RM  */
-    TOGGLE = 263,                  /* TOGGLE  */
-    LIST = 264,                    /* LIST  */
-    TASK = 265,                    /* TASK  */
-    id = 266                       /* id  */
+    DELETE = 261,                  /* DELETE  */
+    ADD = 262,                     /* ADD  */
+    REMOVE = 263,                  /* REMOVE  */
+    TOGGLE = 264                   /* TOGGLE  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
 
 /* Value type.  */
+#if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
+union YYSTYPE
+{
+#line 41 "parser.y"
+
+    char* str;
+	struct id_list* idlist;
+    // int op;
+
+#line 79 "parser.tab.h"
+
+};
+typedef union YYSTYPE YYSTYPE;
+# define YYSTYPE_IS_TRIVIAL 1
+# define YYSTYPE_IS_DECLARED 1
+#endif
 
 
 extern YYSTYPE yylval;
@@ -78,4 +90,4 @@ extern YYSTYPE yylval;
 int yyparse (void);
 
 
-#endif /* !YY_YY_TASK_TAB_H_INCLUDED  */
+#endif /* !YY_YY_PARSER_TAB_H_INCLUDED  */

@@ -1,0 +1,19 @@
+CREATE Lista1 Lista2 Lista3;
+
+Add Lista1 Task1 Task2 Task3;
+Add Lista2 Task4 Task5;
+Add Lista3 Task6 Task7 Task8;
+
+Read;
+Read Lista1;
+Read Lista2;
+Read Lista3;
+
+Remove Lista1 Task1;
+Remove Lista1 Task8;
+Read Lista1;
+
+Remove Lista2 Task4;
+Remove Lista3 Task6;
+Read Lista2;
+Read Lista3;

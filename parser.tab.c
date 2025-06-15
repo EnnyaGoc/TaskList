@@ -67,12 +67,47 @@
 
 
 /* First part of user prologue.  */
-#line 1 "task.y"
+#line 1 "parser.y"
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-#line 76 "task.tab.c"
+#include "parser.tab.h"  
+
+
+#define MAX_LISTAS 100
+#define MAX_TAREFAS 100
+
+
+struct id_list {
+    char* id;
+    struct id_list* next;
+};
+
+
+typedef struct {
+    char* nome;
+    char* tarefas[MAX_TAREFAS];
+    int qtd_tarefas;
+} Lista;
+
+Lista listas[MAX_LISTAS];
+int qtd_listas = 0;
+
+
+void yyerror(const char *s);
+int yylex(void);
+
+int find_lista(const char* nome);
+void print_listas(void);
+int create_lista(const char* nome);
+
+
+
+
+
+#line 111 "parser.tab.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -95,7 +130,7 @@
 #  endif
 # endif
 
-#include "task.tab.h"
+#include "parser.tab.h"
 /* Symbol kind.  */
 enum yysymbol_kind_t
 {
@@ -103,26 +138,22 @@ enum yysymbol_kind_t
   YYSYMBOL_YYEOF = 0,                      /* "end of file"  */
   YYSYMBOL_YYerror = 1,                    /* error  */
   YYSYMBOL_YYUNDEF = 2,                    /* "invalid token"  */
-  YYSYMBOL_CREATE = 3,                     /* CREATE  */
-  YYSYMBOL_DELETE = 4,                     /* DELETE  */
+  YYSYMBOL_ID = 3,                         /* ID  */
+  YYSYMBOL_CREATE = 4,                     /* CREATE  */
   YYSYMBOL_READ = 5,                       /* READ  */
-  YYSYMBOL_ADD = 6,                        /* ADD  */
-  YYSYMBOL_RM = 7,                         /* RM  */
-  YYSYMBOL_TOGGLE = 8,                     /* TOGGLE  */
-  YYSYMBOL_LIST = 9,                       /* LIST  */
-  YYSYMBOL_TASK = 10,                      /* TASK  */
-  YYSYMBOL_id = 11,                        /* id  */
-  YYSYMBOL_12_ = 12,                       /* ';'  */
-  YYSYMBOL_YYACCEPT = 13,                  /* $accept  */
-  YYSYMBOL_program = 14,                   /* program  */
-  YYSYMBOL_commands = 15,                  /* commands  */
-  YYSYMBOL_command = 16,                   /* command  */
-  YYSYMBOL_create_list = 17,               /* create_list  */
-  YYSYMBOL_delete_list = 18,               /* delete_list  */
-  YYSYMBOL_read_list = 19,                 /* read_list  */
-  YYSYMBOL_add_task = 20,                  /* add_task  */
-  YYSYMBOL_remove_task = 21,               /* remove_task  */
-  YYSYMBOL_toggle_task = 22                /* toggle_task  */
+  YYSYMBOL_DELETE = 6,                     /* DELETE  */
+  YYSYMBOL_ADD = 7,                        /* ADD  */
+  YYSYMBOL_REMOVE = 8,                     /* REMOVE  */
+  YYSYMBOL_TOGGLE = 9,                     /* TOGGLE  */
+  YYSYMBOL_10_ = 10,                       /* ';'  */
+  YYSYMBOL_YYACCEPT = 11,                  /* $accept  */
+  YYSYMBOL_seq = 12,                       /* seq  */
+  YYSYMBOL_command = 13,                   /* command  */
+  YYSYMBOL_list_operations = 14,           /* list_operations  */
+  YYSYMBOL_list_command = 15,              /* list_command  */
+  YYSYMBOL_task_operations = 16,           /* task_operations  */
+  YYSYMBOL_task_command = 17,              /* task_command  */
+  YYSYMBOL_N = 18                          /* N  */
 };
 typedef enum yysymbol_kind_t yysymbol_kind_t;
 
@@ -448,21 +479,21 @@ union yyalloc
 #endif /* !YYCOPY_NEEDED */
 
 /* YYFINAL -- State number of the termination state.  */
-#define YYFINAL  22
+#define YYFINAL  13
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   24
+#define YYLAST   13
 
 /* YYNTOKENS -- Number of terminals.  */
-#define YYNTOKENS  13
+#define YYNTOKENS  11
 /* YYNNTS -- Number of nonterminals.  */
-#define YYNNTS  10
+#define YYNNTS  8
 /* YYNRULES -- Number of rules.  */
-#define YYNRULES  17
+#define YYNRULES  16
 /* YYNSTATES -- Number of states.  */
-#define YYNSTATES  34
+#define YYNSTATES  21
 
 /* YYMAXUTOK -- Last valid token kind.  */
-#define YYMAXUTOK   266
+#define YYMAXUTOK   264
 
 
 /* YYTRANSLATE(TOKEN-NUM) -- Symbol number corresponding to TOKEN-NUM
@@ -481,7 +512,7 @@ static const yytype_int8 yytranslate[] =
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,     2,     2,     2,     2,     2,     2,    12,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,    10,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
@@ -502,15 +533,15 @@ static const yytype_int8 yytranslate[] =
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     1,     2,     3,     4,
-       5,     6,     7,     8,     9,    10,    11
+       5,     6,     7,     8,     9
 };
 
 #if YYDEBUG
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
-static const yytype_int8 yyrline[] =
+static const yytype_uint8 yyrline[] =
 {
-       0,    13,    13,    17,    18,    22,    23,    24,    25,    26,
-      27,    31,    37,    43,    46,    52,    58,    64
+       0,    59,    59,    60,    63,    63,    66,    67,    68,    72,
+     140,   147,   148,   149,   153,   195,   201
 };
 #endif
 
@@ -526,10 +557,10 @@ static const char *yysymbol_name (yysymbol_kind_t yysymbol) YY_ATTRIBUTE_UNUSED;
    First, the terminals, then, starting at YYNTOKENS, nonterminals.  */
 static const char *const yytname[] =
 {
-  "\"end of file\"", "error", "\"invalid token\"", "CREATE", "DELETE",
-  "READ", "ADD", "RM", "TOGGLE", "LIST", "TASK", "id", "';'", "$accept",
-  "program", "commands", "command", "create_list", "delete_list",
-  "read_list", "add_task", "remove_task", "toggle_task", YY_NULLPTR
+  "\"end of file\"", "error", "\"invalid token\"", "ID", "CREATE", "READ",
+  "DELETE", "ADD", "REMOVE", "TOGGLE", "';'", "$accept", "seq", "command",
+  "list_operations", "list_command", "task_operations", "task_command",
+  "N", YY_NULLPTR
 };
 
 static const char *
@@ -539,12 +570,12 @@ yysymbol_name (yysymbol_kind_t yysymbol)
 }
 #endif
 
-#define YYPACT_NINF (-11)
+#define YYPACT_NINF (-10)
 
 #define yypact_value_is_default(Yyn) \
   ((Yyn) == YYPACT_NINF)
 
-#define YYTABLE_NINF (-1)
+#define YYTABLE_NINF (-11)
 
 #define yytable_value_is_error(Yyn) \
   0
@@ -553,10 +584,9 @@ yysymbol_name (yysymbol_kind_t yysymbol)
    STATE-NUM.  */
 static const yytype_int8 yypact[] =
 {
-      -3,    -2,    -1,     0,     1,     2,     3,     6,   -11,     4,
-     -11,   -11,   -11,   -11,   -11,   -11,     5,     7,     8,     9,
-      10,    11,   -11,    -3,   -11,   -11,   -11,    12,    13,    14,
-     -11,   -11,   -11,   -11
+      -4,   -10,    -3,   -10,   -10,   -10,   -10,     9,     0,     8,
+     -10,    10,   -10,   -10,    -4,     8,   -10,     8,   -10,   -10,
+     -10
 };
 
 /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
@@ -564,22 +594,21 @@ static const yytype_int8 yypact[] =
    means the default is an error.  */
 static const yytype_int8 yydefact[] =
 {
-       0,     0,     0,    14,     0,     0,     0,     0,     2,     4,
-       5,     6,     7,     8,     9,    10,     0,     0,     0,     0,
-       0,     0,     1,     0,    11,    12,    13,     0,     0,     0,
-       3,    15,    16,    17
+       0,     6,     8,     7,    11,    12,    13,     0,     0,     0,
+       4,     0,     5,     1,     3,    16,     9,     0,     2,    15,
+      14
 };
 
 /* YYPGOTO[NTERM-NUM].  */
 static const yytype_int8 yypgoto[] =
 {
-     -11,   -11,   -10,   -11,   -11,   -11,   -11,   -11,   -11,   -11
+     -10,    -2,   -10,   -10,   -10,   -10,   -10,    -9
 };
 
 /* YYDEFGOTO[NTERM-NUM].  */
 static const yytype_int8 yydefgoto[] =
 {
-       0,     7,     8,     9,    10,    11,    12,    13,    14,    15
+       0,     7,     8,     9,    10,    11,    12,    16
 };
 
 /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
@@ -587,40 +616,37 @@ static const yytype_int8 yydefgoto[] =
    number is the opposite.  If YYTABLE_NINF, syntax error.  */
 static const yytype_int8 yytable[] =
 {
-       1,     2,     3,     4,     5,     6,    22,    16,    17,    18,
-      19,    20,    21,    30,     0,    24,    23,    25,    26,    27,
-      28,    29,    31,    32,    33
+       1,     2,     3,     4,     5,     6,    19,   -10,    20,    13,
+      14,    15,    18,    17
 };
 
 static const yytype_int8 yycheck[] =
 {
-       3,     4,     5,     6,     7,     8,     0,     9,     9,     9,
-       9,     9,     9,    23,    -1,    10,    12,    10,    10,    10,
-      10,    10,    10,    10,    10
+       4,     5,     6,     7,     8,     9,    15,    10,    17,     0,
+      10,     3,    14,     3
 };
 
 /* YYSTOS[STATE-NUM] -- The symbol kind of the accessing symbol of
    state STATE-NUM.  */
 static const yytype_int8 yystos[] =
 {
-       0,     3,     4,     5,     6,     7,     8,    14,    15,    16,
-      17,    18,    19,    20,    21,    22,     9,     9,     9,     9,
-       9,     9,     0,    12,    10,    10,    10,    10,    10,    10,
-      15,    10,    10,    10
+       0,     4,     5,     6,     7,     8,     9,    12,    13,    14,
+      15,    16,    17,     0,    10,     3,    18,     3,    12,    18,
+      18
 };
 
 /* YYR1[RULE-NUM] -- Symbol kind of the left-hand side of rule RULE-NUM.  */
 static const yytype_int8 yyr1[] =
 {
-       0,    13,    14,    15,    15,    16,    16,    16,    16,    16,
-      16,    17,    18,    19,    19,    20,    21,    22
+       0,    11,    12,    12,    13,    13,    14,    14,    14,    15,
+      15,    16,    16,    16,    17,    18,    18
 };
 
 /* YYR2[RULE-NUM] -- Number of symbols on the right-hand side of rule RULE-NUM.  */
 static const yytype_int8 yyr2[] =
 {
-       0,     2,     1,     3,     1,     1,     1,     1,     1,     1,
-       1,     3,     3,     3,     1,     4,     4,     4
+       0,     2,     3,     2,     1,     1,     1,     1,     1,     2,
+       1,     1,     1,     1,     3,     2,     1
 };
 
 
@@ -1083,64 +1109,191 @@ yyreduce:
   YY_REDUCE_PRINT (yyn);
   switch (yyn)
     {
-  case 11: /* create_list: CREATE LIST TASK  */
-#line 31 "task.y"
-                     {
-        printf("Criando lista: %s\n", (yyvsp[0].string));
-    }
-#line 1092 "task.tab.c"
+  case 6: /* list_operations: CREATE  */
+#line 66 "parser.y"
+           { (yyval.str) = "CREATE"; }
+#line 1116 "parser.tab.c"
     break;
 
-  case 12: /* delete_list: DELETE LIST TASK  */
-#line 37 "task.y"
-                     {
-        printf("Deletando lista: %s\n", (yyvsp[0].string));
-    }
-#line 1100 "task.tab.c"
+  case 7: /* list_operations: DELETE  */
+#line 67 "parser.y"
+                 { (yyval.str) = "DELETE"; }
+#line 1122 "parser.tab.c"
     break;
 
-  case 13: /* read_list: READ LIST TASK  */
-#line 43 "task.y"
-                   {
-        printf("Lendo lista %s e tarefa %s\n", (yyvsp[-1].string), (yyvsp[0].string));
-    }
-#line 1108 "task.tab.c"
+  case 8: /* list_operations: READ  */
+#line 68 "parser.y"
+           { (yyval.str) = "READ"; }
+#line 1128 "parser.tab.c"
     break;
 
-  case 14: /* read_list: READ  */
-#line 46 "task.y"
-           {
-        printf("Lendo todas as listas\n");
-    }
-#line 1116 "task.tab.c"
-    break;
-
-  case 15: /* add_task: ADD LIST TASK TASK  */
-#line 52 "task.y"
-                       {
-        printf("Adicionando tarefa %s à lista %s\n", (yyvsp[-1].string), (yyvsp[-2].string));
-    }
-#line 1124 "task.tab.c"
-    break;
-
-  case 16: /* remove_task: RM LIST TASK TASK  */
-#line 58 "task.y"
+  case 9: /* list_command: list_operations N  */
+#line 72 "parser.y"
                       {
-        printf("Removendo tarefa %s da lista %s\n", (yyvsp[-1].string), (yyvsp[-2].string));
+        if ((yyvsp[-1].str) == "CREATE") {
+			printf("Criando lista(s)...\n");
+			struct id_list* current = (yyvsp[0].idlist);
+
+			while (current) {
+				int res = create_lista(current->id);
+				if ( res == -1) {
+					printf("Erro ao criar lista: %s\n", current->id);
+				} else {
+					printf("Lista criada: %s\n", current->id);
+				}
+				current = current->next;
+			}
+		} 
+		if ((yyvsp[-1].str) == "DELETE") {
+			printf("Deletando lista(s)...\n");
+			struct id_list* current = (yyvsp[0].idlist);
+
+			while (current) {
+				int i = find_lista(current->id);
+				if (i != -1) {
+					// Não verifiquei se isso pode grear algum bug...
+					free(listas[i].nome);
+					for (int j = 0; j < listas[i].qtd_tarefas; j++) {
+						free(listas[i].tarefas[j]);
+					}
+					
+					// OK, mas Porque?
+					for (int j = i; j < qtd_listas - 1; j++) {
+						listas[j] = listas[j + 1];
+					}
+
+					qtd_listas--;
+					printf("Lista %s deletada.\n", current->id);
+				} else {
+					printf("Erro. '%s' nao encontrada.\n", current->id);
+				}
+				current = current->next;
+			}
+			
+		} 
+		if ((yyvsp[-1].str) == "READ") {
+			printf("Lendo lista(s):\n", (yyvsp[0].idlist));
+			struct id_list* current = (yyvsp[0].idlist);
+			while (current) {
+				// Verifica se a lista existe
+				int i = find_lista(current->id);
+				if (i != -1) {
+					printf("%s:\n", current->id);
+
+					// Imprime as tarefas da lista
+					if (listas[i].qtd_tarefas == 0) {
+						printf("Lista %s está vazia.\n", listas[i].nome);
+					} else {
+						for (int j = 0; j < listas[i].qtd_tarefas; j++) {
+							printf(" - %s\n", listas[i].tarefas[j]);
+						}
+					}
+				} else {
+					printf("Erro. '%s' nao encontrada.\n", current->id);
+				}
+				current = current->next;
+			}
+		}
+		free((yyvsp[0].idlist));
     }
-#line 1132 "task.tab.c"
+#line 1200 "parser.tab.c"
     break;
 
-  case 17: /* toggle_task: TOGGLE LIST TASK TASK  */
-#line 64 "task.y"
-                          {
-        printf("Alternando o status da tarefa %s na lista %s\n", (yyvsp[-1].string), (yyvsp[-2].string));
+  case 10: /* list_command: READ  */
+#line 140 "parser.y"
+           {
+		printf("Lendo todas as listas:\n");
+		print_listas();
     }
-#line 1140 "task.tab.c"
+#line 1209 "parser.tab.c"
+    break;
+
+  case 11: /* task_operations: ADD  */
+#line 147 "parser.y"
+            { (yyval.str) = "ADD"; }
+#line 1215 "parser.tab.c"
+    break;
+
+  case 12: /* task_operations: REMOVE  */
+#line 148 "parser.y"
+                 { (yyval.str) = "REMOVE"; }
+#line 1221 "parser.tab.c"
+    break;
+
+  case 13: /* task_operations: TOGGLE  */
+#line 149 "parser.y"
+                 { (yyval.str) = "TOGGLE"; }
+#line 1227 "parser.tab.c"
+    break;
+
+  case 14: /* task_command: task_operations ID N  */
+#line 153 "parser.y"
+                             {
+		int i = find_lista((yyvsp[-1].str));
+		if (i == -1) {
+			printf("Erro. Lista '%s' nao encontrada.\n", (yyvsp[-1].str));
+		} else {
+			struct id_list* current = (yyvsp[0].idlist);
+			while (current) {
+				if ((yyvsp[-2].str) == "ADD") {
+					if (listas[i].qtd_tarefas < MAX_TAREFAS) {
+						listas[i].tarefas[listas[i].qtd_tarefas++] = strdup(current->id);
+						printf("Tarefa '%s' adicionada à lista '%s'.\n", current->id, listas[i].nome);
+					} else {
+						printf("Limite de tarefas atingido para a lista '%s'.\n", listas[i].nome);
+					}
+				} 
+				else if ((yyvsp[-2].str) == "REMOVE") {
+					int found = 0;
+					for (int j = 0; j < listas[i].qtd_tarefas; j++) {
+						if (strcmp(listas[i].tarefas[j], current->id) == 0) {
+							free(listas[i].tarefas[j]);
+							listas[i].tarefas[j] = listas[i].tarefas[listas[i].qtd_tarefas - 1];
+							listas[i].tarefas[listas[i].qtd_tarefas - 1] = NULL;
+							listas[i].qtd_tarefas--;
+							printf("Tarefa '%s' removida da lista '%s'.\n", current->id, listas[i].nome);
+							found = 1;
+							break;
+						}
+					}
+					if (!found) {
+						printf("Tarefa '%s' nao encontrada na lista '%s'.\n", current->id, listas[i].nome);
+					}
+				} else if ((yyvsp[-2].str) == "TOGGLE") {
+					// Implementar lógica de toggle se necessário
+				}
+				current = current->next;
+			}
+		}
+		free((yyvsp[0].idlist));
+	}
+#line 1271 "parser.tab.c"
+    break;
+
+  case 15: /* N: ID N  */
+#line 195 "parser.y"
+         {
+		struct id_list* new_node = malloc(sizeof(struct id_list));
+		new_node->id = (yyvsp[-1].str);
+		new_node->next = (yyvsp[0].idlist);
+        (yyval.idlist) = new_node;
+    }
+#line 1282 "parser.tab.c"
+    break;
+
+  case 16: /* N: ID  */
+#line 201 "parser.y"
+         {
+		struct id_list* new_node = malloc(sizeof(struct id_list));
+		new_node->id = (yyvsp[0].str);
+		new_node->next = NULL;
+		(yyval.idlist) = new_node;
+    }
+#line 1293 "parser.tab.c"
     break;
 
 
-#line 1144 "task.tab.c"
+#line 1297 "parser.tab.c"
 
       default: break;
     }
@@ -1333,15 +1486,58 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 69 "task.y"
+#line 208 "parser.y"
+
+
+/* Implementação de funções em C */
+
+
+int create_lista(const char* nome) {
+	if (qtd_listas >= MAX_LISTAS) {
+		printf("Limite de listas atingido.\n");
+		return -1;
+	}
+	listas[qtd_listas].nome = strdup(nome);
+	listas[qtd_listas].qtd_tarefas = 0;
+	qtd_listas++;
+	return 1;
+}
+
+
+int find_lista(const char* nome) {
+	for (int i = 0; i < qtd_listas; i++) {
+		if (strcmp(listas[i].nome, nome) == 0) {
+			return i;
+		}
+	}
+	return -1; 
+}
+
+
+void print_listas(){
+	if (qtd_listas == 0) {
+		printf("Nenhuma lista criada.\n");
+		return;
+	}
+	for (int i = 0; i < qtd_listas; i++) {
+		printf("Lista %s contém %d tarefas:\n", listas[i].nome, listas[i].qtd_tarefas);
+	}
+}
+
+void free_id_list(struct id_list* node) {
+    while (node) {
+        struct id_list* tmp = node;
+        node = node->next;
+        free(tmp->id);
+        free(tmp);
+    }
+}	
 
 
 int main(void) {
-    yyparse();
-    return 0;
+    return yyparse();
 }
 
-int yyerror(char *s) {
-    fprintf(stderr, "Erro: %s\n", s);
-    return 0;
+void yyerror(const char *s) {
+    fprintf(stderr, "Erro de sintaxe: %s\n", s);
 }

@@ -1,0 +1,11 @@
+seq -> command;seq | command
+command -> list_command | task_command
+
+list_operations -> CREATE | DELETE | READ
+list_command -> list_operations N | READ
+
+task_operations -> ADD | REMOVE | TOGGLE
+task_command -> task_operations Id N
+
+N -> Id N | Id
+
