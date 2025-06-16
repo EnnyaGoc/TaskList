@@ -69,7 +69,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 41 "parser.y"
+#line 46 "parser.y"
 
     char* str;
 	struct id_list* idlist;

@@ -72,6 +72,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "parser.tab.h"  
 
@@ -85,10 +86,14 @@ struct id_list {
     struct id_list* next;
 };
 
+typedef struct {
+	char* task_name;
+	bool completed;	
+} Task;
 
 typedef struct {
     char* nome;
-    char* tarefas[MAX_TAREFAS];
+    Task* tarefas[MAX_TAREFAS];
     int qtd_tarefas;
 } Lista;
 
@@ -107,7 +112,7 @@ int create_lista(const char* nome);
 
 
 
-#line 111 "parser.tab.c"
+#line 116 "parser.tab.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -540,8 +545,8 @@ static const yytype_int8 yytranslate[] =
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_uint8 yyrline[] =
 {
-       0,    59,    59,    60,    63,    63,    66,    67,    68,    72,
-     140,   147,   148,   149,   153,   195,   201
+       0,    64,    64,    65,    68,    68,    71,    72,    73,    77,
+     145,   152,   153,   154,   158,   224,   230
 };
 #endif
 
@@ -1110,25 +1115,25 @@ yyreduce:
   switch (yyn)
     {
   case 6: /* list_operations: CREATE  */
-#line 66 "parser.y"
+#line 71 "parser.y"
            { (yyval.str) = "CREATE"; }
-#line 1116 "parser.tab.c"
+#line 1121 "parser.tab.c"
     break;
 
   case 7: /* list_operations: DELETE  */
-#line 67 "parser.y"
+#line 72 "parser.y"
                  { (yyval.str) = "DELETE"; }
-#line 1122 "parser.tab.c"
+#line 1127 "parser.tab.c"
     break;
 
   case 8: /* list_operations: READ  */
-#line 68 "parser.y"
+#line 73 "parser.y"
            { (yyval.str) = "READ"; }
-#line 1128 "parser.tab.c"
+#line 1133 "parser.tab.c"
     break;
 
   case 9: /* list_command: list_operations N  */
-#line 72 "parser.y"
+#line 77 "parser.y"
                       {
         if ((yyvsp[-1].str) == "CREATE") {
 			printf("Criando lista(s)...\n");
@@ -1185,7 +1190,7 @@ yyreduce:
 						printf("Lista %s está vazia.\n", listas[i].nome);
 					} else {
 						for (int j = 0; j < listas[i].qtd_tarefas; j++) {
-							printf(" - %s\n", listas[i].tarefas[j]);
+							printf(" - %s - %s\n", listas[i].tarefas[j]->task_name, (listas[i].tarefas[j]->completed) ? "Completa" : "Pendente");
 						}
 					}
 				} else {
@@ -1196,38 +1201,38 @@ yyreduce:
 		}
 		free((yyvsp[0].idlist));
     }
-#line 1200 "parser.tab.c"
+#line 1205 "parser.tab.c"
     break;
 
   case 10: /* list_command: READ  */
-#line 140 "parser.y"
+#line 145 "parser.y"
            {
 		printf("Lendo todas as listas:\n");
 		print_listas();
     }
-#line 1209 "parser.tab.c"
+#line 1214 "parser.tab.c"
     break;
 
   case 11: /* task_operations: ADD  */
-#line 147 "parser.y"
+#line 152 "parser.y"
             { (yyval.str) = "ADD"; }
-#line 1215 "parser.tab.c"
+#line 1220 "parser.tab.c"
     break;
 
   case 12: /* task_operations: REMOVE  */
-#line 148 "parser.y"
+#line 153 "parser.y"
                  { (yyval.str) = "REMOVE"; }
-#line 1221 "parser.tab.c"
+#line 1226 "parser.tab.c"
     break;
 
   case 13: /* task_operations: TOGGLE  */
-#line 149 "parser.y"
+#line 154 "parser.y"
                  { (yyval.str) = "TOGGLE"; }
-#line 1227 "parser.tab.c"
+#line 1232 "parser.tab.c"
     break;
 
   case 14: /* task_command: task_operations ID N  */
-#line 153 "parser.y"
+#line 158 "parser.y"
                              {
 		int i = find_lista((yyvsp[-1].str));
 		if (i == -1) {
@@ -1237,7 +1242,15 @@ yyreduce:
 			while (current) {
 				if ((yyvsp[-2].str) == "ADD") {
 					if (listas[i].qtd_tarefas < MAX_TAREFAS) {
-						listas[i].tarefas[listas[i].qtd_tarefas++] = strdup(current->id);
+
+						Task* new_task = malloc(sizeof(Task));
+						new_task->task_name = strdup(current->id);
+						new_task->completed = false;
+
+						listas[i].tarefas[listas[i].qtd_tarefas] = new_task;
+						listas[i].qtd_tarefas++;
+
+
 						printf("Tarefa '%s' adicionada à lista '%s'.\n", current->id, listas[i].nome);
 					} else {
 						printf("Limite de tarefas atingido para a lista '%s'.\n", listas[i].nome);
@@ -1246,11 +1259,15 @@ yyreduce:
 				else if ((yyvsp[-2].str) == "REMOVE") {
 					int found = 0;
 					for (int j = 0; j < listas[i].qtd_tarefas; j++) {
-						if (strcmp(listas[i].tarefas[j], current->id) == 0) {
+						if (strcmp(listas[i].tarefas[j]->task_name, current->id) == 0) {
+
 							free(listas[i].tarefas[j]);
+
+							// Move o último elemento para a posição do removido
 							listas[i].tarefas[j] = listas[i].tarefas[listas[i].qtd_tarefas - 1];
 							listas[i].tarefas[listas[i].qtd_tarefas - 1] = NULL;
 							listas[i].qtd_tarefas--;
+
 							printf("Tarefa '%s' removida da lista '%s'.\n", current->id, listas[i].nome);
 							found = 1;
 							break;
@@ -1260,40 +1277,52 @@ yyreduce:
 						printf("Tarefa '%s' nao encontrada na lista '%s'.\n", current->id, listas[i].nome);
 					}
 				} else if ((yyvsp[-2].str) == "TOGGLE") {
-					// Implementar lógica de toggle se necessário
+					int found = 0;
+					for (int j = 0; j < listas[i].qtd_tarefas; j++) {
+						if (strcmp(listas[i].tarefas[j]->task_name, current->id) == 0) {
+							
+							listas[i].tarefas[j]->completed = !listas[i].tarefas[j]->completed;
+							printf("Tarefa '%s' na lista '%s' atualizada.\n", current->id, listas[i].nome);
+							found = 1;
+							break;
+						}
+					}
+					if (!found) {
+						printf("Tarefa '%s' nao encontrada na lista '%s'.\n", current->id, listas[i].nome);
+					}
 				}
 				current = current->next;
 			}
 		}
 		free((yyvsp[0].idlist));
 	}
-#line 1271 "parser.tab.c"
+#line 1300 "parser.tab.c"
     break;
 
   case 15: /* N: ID N  */
-#line 195 "parser.y"
+#line 224 "parser.y"
          {
 		struct id_list* new_node = malloc(sizeof(struct id_list));
 		new_node->id = (yyvsp[-1].str);
 		new_node->next = (yyvsp[0].idlist);
         (yyval.idlist) = new_node;
     }
-#line 1282 "parser.tab.c"
+#line 1311 "parser.tab.c"
     break;
 
   case 16: /* N: ID  */
-#line 201 "parser.y"
+#line 230 "parser.y"
          {
 		struct id_list* new_node = malloc(sizeof(struct id_list));
 		new_node->id = (yyvsp[0].str);
 		new_node->next = NULL;
 		(yyval.idlist) = new_node;
     }
-#line 1293 "parser.tab.c"
+#line 1322 "parser.tab.c"
     break;
 
 
-#line 1297 "parser.tab.c"
+#line 1326 "parser.tab.c"
 
       default: break;
     }
@@ -1486,7 +1515,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 208 "parser.y"
+#line 237 "parser.y"
 
 
 /* Implementação de funções em C */
