@@ -795,10 +795,7 @@ YY_RULE_SETUP
 { return ADD;    }
 	YY_BREAK
 case 5:
-YY_RULE_SETUP
-#line 13 "lexer.l"
-{ return REMOVE; }
-	YY_BREAK
+#line 14 "lexer.l"
 case 6:
 YY_RULE_SETUP
 #line 14 "lexer.l"
@@ -842,7 +839,7 @@ YY_RULE_SETUP
 #line 31 "lexer.l"
 ECHO;
 	YY_BREAK
-#line 846 "lex.yy.c"
+#line 843 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 

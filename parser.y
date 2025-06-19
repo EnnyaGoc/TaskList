@@ -34,9 +34,13 @@ int qtd_listas = 0;
 void yyerror(const char *s);
 int yylex(void);
 
-int find_lista(const char* nome);
 void print_listas(void);
+int find_lista(const char* nome);
+
 int create_lista(const char* nome);
+
+int toggle_task(int i, char* id_task);
+int remove_task(int i, char* id_task);
 
 
 
@@ -46,7 +50,6 @@ int create_lista(const char* nome);
 %union {
     char* str;
 	struct id_list* idlist;
-    // int op;
 }
 
 %token <str> ID
@@ -89,20 +92,20 @@ list_command:
 				current = current->next;
 			}
 		} 
-		if ($1 == "DELETE") {
+		else if ($1 == "DELETE") {
 			printf("Deletando lista(s)...\n");
 			struct id_list* current = $2;
 
 			while (current) {
 				int i = find_lista(current->id);
 				if (i != -1) {
-					// Não verifiquei se isso pode grear algum bug...
 					free(listas[i].nome);
+					
 					for (int j = 0; j < listas[i].qtd_tarefas; j++) {
 						free(listas[i].tarefas[j]);
 					}
 					
-					// OK, mas Porque?
+					// Desloca todaas as listas com indice superior a i para uma posição inferior (remove buracos)
 					for (int j = i; j < qtd_listas - 1; j++) {
 						listas[j] = listas[j + 1];
 					}
@@ -116,21 +119,20 @@ list_command:
 			}
 			
 		} 
-		if ($1 == "READ") {
+		else if ($1 == "READ") {
 			printf("Lendo lista(s):\n", $2);
 			struct id_list* current = $2;
 			while (current) {
 				// Verifica se a lista existe
 				int i = find_lista(current->id);
 				if (i != -1) {
-					printf("%s:\n", current->id);
-
 					// Imprime as tarefas da lista
 					if (listas[i].qtd_tarefas == 0) {
-						printf("Lista %s está vazia.\n", listas[i].nome);
+						printf("\tLista %s está vazia.\n", listas[i].nome);
 					} else {
+						printf("\t- %s:\n", current->id);
 						for (int j = 0; j < listas[i].qtd_tarefas; j++) {
-							printf(" - %s - %s\n", listas[i].tarefas[j]->task_name, (listas[i].tarefas[j]->completed) ? "Completa" : "Pendente");
+							printf("\t-- %s - %s\n", listas[i].tarefas[j]->task_name, (listas[i].tarefas[j]->completed) ? "Completa" : "Pendente");
 						}
 					}
 				} else {
@@ -139,14 +141,10 @@ list_command:
 				current = current->next;
 			}
 		}
-		// Ideia: Autoremove 
-		// Remover automaticamente tarefas já concluidas das listas informadas
-		
 		free($2);
     }
 
     | READ {
-		printf("Lendo todas as listas:\n");
 		print_listas();
     }
 ;
@@ -175,45 +173,23 @@ task_command:
 						listas[i].tarefas[listas[i].qtd_tarefas] = new_task;
 						listas[i].qtd_tarefas++;
 
-
 						printf("Tarefa '%s' adicionada à lista '%s'.\n", current->id, listas[i].nome);
+
 					} else {
 						printf("Limite de tarefas atingido para a lista '%s'.\n", listas[i].nome);
 					}
 				} 
 				else if ($1 == "REMOVE") {
-					int found = 0;
-					for (int j = 0; j < listas[i].qtd_tarefas; j++) {
-						if (strcmp(listas[i].tarefas[j]->task_name, current->id) == 0) {
-
-							free(listas[i].tarefas[j]);
-
-							// Move o último elemento para a posição do removido
-							listas[i].tarefas[j] = listas[i].tarefas[listas[i].qtd_tarefas - 1];
-							listas[i].tarefas[listas[i].qtd_tarefas - 1] = NULL;
-							listas[i].qtd_tarefas--;
-
-							printf("Tarefa '%s' removida da lista '%s'.\n", current->id, listas[i].nome);
-							found = 1;
-							break;
-						}
-					}
-					if (!found) {
+					int res = remove_task(i, current->id);
+					if (res == -1) {
 						printf("Tarefa '%s' nao encontrada na lista '%s'.\n", current->id, listas[i].nome);
+					} else {
+						printf("Tarefa '%s' removida da lista '%s'.\n", current->id, listas[i].nome);
 					}
 				} else if ($1 == "TOGGLE") {
-					int found = 0;
-					for (int j = 0; j < listas[i].qtd_tarefas; j++) {
-						if (strcmp(listas[i].tarefas[j]->task_name, current->id) == 0) {
-							
-							listas[i].tarefas[j]->completed = !listas[i].tarefas[j]->completed;
-							printf("Tarefa '%s' na lista '%s' atualizada.\n", current->id, listas[i].nome);
-							found = 1;
-							break;
-						}
-					}
-					if (!found) {
-						printf("Tarefa '%s' nao encontrada na lista '%s'.\n", current->id, listas[i].nome);
+					int ret = toggle_task(i, current->id);
+					if (ret == -1) {
+						printf("Erro ao alterar o estado da tarefa.\n");
 					}
 				}
 				current = current->next;
@@ -253,6 +229,40 @@ int create_lista(const char* nome) {
 	return 1;
 }
 
+int toggle_task(int i, char* id_task) {
+
+
+	for (int j = 0; j < listas[i].qtd_tarefas; j++) {
+		if (strcmp(listas[i].tarefas[j]->task_name, id_task) == 0) {
+			listas[i].tarefas[j]->completed = !listas[i].tarefas[j]->completed;
+
+			printf("Tarefa '%s' na lista '%s' atualizada.\n", id_task, listas[i].nome);
+			return 1; // Tarefa encontrada e alternada
+		}
+	}
+	printf("Tarefa '%s' nao encontrada na lista '%s'.\n", id_task, listas[i].nome);
+	return -1; // Tarefa nao encontrada
+
+}
+
+
+int remove_task(int i, char* id_task){
+	for (int j = 0; j < listas[i].qtd_tarefas; j++) {
+		if (strcmp(listas[i].tarefas[j]->task_name, id_task) == 0) {
+			free(listas[i].tarefas[j]->task_name);
+			free(listas[i].tarefas[j]);
+
+			// Move o último elemento para a posição do removido
+			listas[i].tarefas[j] = listas[i].tarefas[listas[i].qtd_tarefas - 1];
+			listas[i].tarefas[listas[i].qtd_tarefas - 1] = NULL;
+			listas[i].qtd_tarefas--;
+
+			return 1; // Tarefa encontrada e removida
+		}
+	}
+	
+	return -1; // Tarefa nao encontrada
+}
 
 int find_lista(const char* nome) {
 	for (int i = 0; i < qtd_listas; i++) {
@@ -265,6 +275,8 @@ int find_lista(const char* nome) {
 
 
 void print_listas(){
+
+	printf("Lendo todas as listas (%d):\n", qtd_listas);
 	if (qtd_listas == 0) {
 		printf("Nenhuma lista criada.\n");
 		return;

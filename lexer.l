@@ -5,13 +5,13 @@
 
 %%
 
-"CREATE"|"Create"|"create"         { return CREATE; }
-"DELETE"|"Delete"|"delete"|"del"   { return DELETE; }
-"READ"|"Read"|"read"|"r"           { return READ;   }
+"CREATE"|"Create"|"create"		          { return CREATE; }
+"DELETE"|"Delete"|"delete"|"del"		  { return DELETE; }
+"READ"|"Read"|"read"|"r"		          { return READ;   }
 
-"ADD"|"Add"|"add"                  { return ADD;    }
-"REMOVE"|"Remove"|"remove"|"rem"   { return REMOVE; }
-"TOGGLE"|"Toggle"|"toggle"|"tgl"   { return TOGGLE; }
+"ADD"|"Add"|"add"		                  { return ADD;    }
+"REMOVE"|"Remove"|"remove"|"rem" | "rm"   { return REMOVE; }
+"TOGGLE"|"Toggle"|"toggle"|"tgl" 		  { return TOGGLE; }
 
 [a-zA-Z_][a-zA-Z0-9_]* {
     yylval.str = strdup(yytext);

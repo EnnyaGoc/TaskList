@@ -104,15 +104,19 @@ int qtd_listas = 0;
 void yyerror(const char *s);
 int yylex(void);
 
-int find_lista(const char* nome);
 void print_listas(void);
+int find_lista(const char* nome);
+
 int create_lista(const char* nome);
 
+int toggle_task(int i, char* id_task);
+int remove_task(int i, char* id_task);
 
 
 
 
-#line 116 "parser.tab.c"
+
+#line 120 "parser.tab.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -545,8 +549,8 @@ static const yytype_int8 yytranslate[] =
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_uint8 yyrline[] =
 {
-       0,    64,    64,    65,    68,    68,    71,    72,    73,    77,
-     145,   152,   153,   154,   158,   224,   230
+       0,    67,    67,    68,    71,    71,    74,    75,    76,    80,
+     147,   153,   154,   155,   159,   203,   209
 };
 #endif
 
@@ -1115,25 +1119,25 @@ yyreduce:
   switch (yyn)
     {
   case 6: /* list_operations: CREATE  */
-#line 71 "parser.y"
+#line 74 "parser.y"
            { (yyval.str) = "CREATE"; }
-#line 1121 "parser.tab.c"
+#line 1125 "parser.tab.c"
     break;
 
   case 7: /* list_operations: DELETE  */
-#line 72 "parser.y"
+#line 75 "parser.y"
                  { (yyval.str) = "DELETE"; }
-#line 1127 "parser.tab.c"
+#line 1131 "parser.tab.c"
     break;
 
   case 8: /* list_operations: READ  */
-#line 73 "parser.y"
+#line 76 "parser.y"
            { (yyval.str) = "READ"; }
-#line 1133 "parser.tab.c"
+#line 1137 "parser.tab.c"
     break;
 
   case 9: /* list_command: list_operations N  */
-#line 77 "parser.y"
+#line 80 "parser.y"
                       {
         if ((yyvsp[-1].str) == "CREATE") {
 			printf("Criando lista(s)...\n");
@@ -1149,20 +1153,20 @@ yyreduce:
 				current = current->next;
 			}
 		} 
-		if ((yyvsp[-1].str) == "DELETE") {
+		else if ((yyvsp[-1].str) == "DELETE") {
 			printf("Deletando lista(s)...\n");
 			struct id_list* current = (yyvsp[0].idlist);
 
 			while (current) {
 				int i = find_lista(current->id);
 				if (i != -1) {
-					// Não verifiquei se isso pode grear algum bug...
 					free(listas[i].nome);
+					
 					for (int j = 0; j < listas[i].qtd_tarefas; j++) {
 						free(listas[i].tarefas[j]);
 					}
 					
-					// OK, mas Porque?
+					// Desloca todaas as listas com indice superior a i para uma posição inferior (remove buracos)
 					for (int j = i; j < qtd_listas - 1; j++) {
 						listas[j] = listas[j + 1];
 					}
@@ -1176,21 +1180,20 @@ yyreduce:
 			}
 			
 		} 
-		if ((yyvsp[-1].str) == "READ") {
+		else if ((yyvsp[-1].str) == "READ") {
 			printf("Lendo lista(s):\n", (yyvsp[0].idlist));
 			struct id_list* current = (yyvsp[0].idlist);
 			while (current) {
 				// Verifica se a lista existe
 				int i = find_lista(current->id);
 				if (i != -1) {
-					printf("%s:\n", current->id);
-
 					// Imprime as tarefas da lista
 					if (listas[i].qtd_tarefas == 0) {
-						printf("Lista %s está vazia.\n", listas[i].nome);
+						printf("\tLista %s está vazia.\n", listas[i].nome);
 					} else {
+						printf("\t- %s:\n", current->id);
 						for (int j = 0; j < listas[i].qtd_tarefas; j++) {
-							printf(" - %s - %s\n", listas[i].tarefas[j]->task_name, (listas[i].tarefas[j]->completed) ? "Completa" : "Pendente");
+							printf("\t-- %s - %s\n", listas[i].tarefas[j]->task_name, (listas[i].tarefas[j]->completed) ? "Completa" : "Pendente");
 						}
 					}
 				} else {
@@ -1201,38 +1204,37 @@ yyreduce:
 		}
 		free((yyvsp[0].idlist));
     }
-#line 1205 "parser.tab.c"
+#line 1208 "parser.tab.c"
     break;
 
   case 10: /* list_command: READ  */
-#line 145 "parser.y"
+#line 147 "parser.y"
            {
-		printf("Lendo todas as listas:\n");
 		print_listas();
     }
-#line 1214 "parser.tab.c"
+#line 1216 "parser.tab.c"
     break;
 
   case 11: /* task_operations: ADD  */
-#line 152 "parser.y"
+#line 153 "parser.y"
             { (yyval.str) = "ADD"; }
-#line 1220 "parser.tab.c"
+#line 1222 "parser.tab.c"
     break;
 
   case 12: /* task_operations: REMOVE  */
-#line 153 "parser.y"
+#line 154 "parser.y"
                  { (yyval.str) = "REMOVE"; }
-#line 1226 "parser.tab.c"
+#line 1228 "parser.tab.c"
     break;
 
   case 13: /* task_operations: TOGGLE  */
-#line 154 "parser.y"
+#line 155 "parser.y"
                  { (yyval.str) = "TOGGLE"; }
-#line 1232 "parser.tab.c"
+#line 1234 "parser.tab.c"
     break;
 
   case 14: /* task_command: task_operations ID N  */
-#line 158 "parser.y"
+#line 159 "parser.y"
                              {
 		int i = find_lista((yyvsp[-1].str));
 		if (i == -1) {
@@ -1250,45 +1252,23 @@ yyreduce:
 						listas[i].tarefas[listas[i].qtd_tarefas] = new_task;
 						listas[i].qtd_tarefas++;
 
-
 						printf("Tarefa '%s' adicionada à lista '%s'.\n", current->id, listas[i].nome);
+
 					} else {
 						printf("Limite de tarefas atingido para a lista '%s'.\n", listas[i].nome);
 					}
 				} 
 				else if ((yyvsp[-2].str) == "REMOVE") {
-					int found = 0;
-					for (int j = 0; j < listas[i].qtd_tarefas; j++) {
-						if (strcmp(listas[i].tarefas[j]->task_name, current->id) == 0) {
-
-							free(listas[i].tarefas[j]);
-
-							// Move o último elemento para a posição do removido
-							listas[i].tarefas[j] = listas[i].tarefas[listas[i].qtd_tarefas - 1];
-							listas[i].tarefas[listas[i].qtd_tarefas - 1] = NULL;
-							listas[i].qtd_tarefas--;
-
-							printf("Tarefa '%s' removida da lista '%s'.\n", current->id, listas[i].nome);
-							found = 1;
-							break;
-						}
-					}
-					if (!found) {
+					int res = remove_task(i, current->id);
+					if (res == -1) {
 						printf("Tarefa '%s' nao encontrada na lista '%s'.\n", current->id, listas[i].nome);
+					} else {
+						printf("Tarefa '%s' removida da lista '%s'.\n", current->id, listas[i].nome);
 					}
 				} else if ((yyvsp[-2].str) == "TOGGLE") {
-					int found = 0;
-					for (int j = 0; j < listas[i].qtd_tarefas; j++) {
-						if (strcmp(listas[i].tarefas[j]->task_name, current->id) == 0) {
-							
-							listas[i].tarefas[j]->completed = !listas[i].tarefas[j]->completed;
-							printf("Tarefa '%s' na lista '%s' atualizada.\n", current->id, listas[i].nome);
-							found = 1;
-							break;
-						}
-					}
-					if (!found) {
-						printf("Tarefa '%s' nao encontrada na lista '%s'.\n", current->id, listas[i].nome);
+					int ret = toggle_task(i, current->id);
+					if (ret == -1) {
+						printf("Erro ao alterar o estado da tarefa.\n");
 					}
 				}
 				current = current->next;
@@ -1296,33 +1276,33 @@ yyreduce:
 		}
 		free((yyvsp[0].idlist));
 	}
-#line 1300 "parser.tab.c"
+#line 1280 "parser.tab.c"
     break;
 
   case 15: /* N: ID N  */
-#line 224 "parser.y"
+#line 203 "parser.y"
          {
 		struct id_list* new_node = malloc(sizeof(struct id_list));
 		new_node->id = (yyvsp[-1].str);
 		new_node->next = (yyvsp[0].idlist);
         (yyval.idlist) = new_node;
     }
-#line 1311 "parser.tab.c"
+#line 1291 "parser.tab.c"
     break;
 
   case 16: /* N: ID  */
-#line 230 "parser.y"
+#line 209 "parser.y"
          {
 		struct id_list* new_node = malloc(sizeof(struct id_list));
 		new_node->id = (yyvsp[0].str);
 		new_node->next = NULL;
 		(yyval.idlist) = new_node;
     }
-#line 1322 "parser.tab.c"
+#line 1302 "parser.tab.c"
     break;
 
 
-#line 1326 "parser.tab.c"
+#line 1306 "parser.tab.c"
 
       default: break;
     }
@@ -1515,7 +1495,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 237 "parser.y"
+#line 216 "parser.y"
 
 
 /* Implementação de funções em C */
@@ -1532,6 +1512,41 @@ int create_lista(const char* nome) {
 	return 1;
 }
 
+int toggle_task(int i, char* id_task) {
+
+
+	for (int j = 0; j < listas[i].qtd_tarefas; j++) {
+		if (strcmp(listas[i].tarefas[j]->task_name, id_task) == 0) {
+			listas[i].tarefas[j]->completed = !listas[i].tarefas[j]->completed;
+
+			printf("Tarefa '%s' na lista '%s' atualizada.\n", id_task, listas[i].nome);
+			return 1; // Tarefa encontrada e alternada
+		}
+	}
+	printf("Tarefa '%s' nao encontrada na lista '%s'.\n", id_task, listas[i].nome);
+	return -1; // Tarefa nao encontrada
+
+}
+
+
+int remove_task(int i, char* id_task){
+	for (int j = 0; j < listas[i].qtd_tarefas; j++) {
+		if (strcmp(listas[i].tarefas[j]->task_name, id_task) == 0) {
+			free(listas[i].tarefas[j]->task_name);
+			/* free(listas[i].tarefas[j]->completed); */
+			free(listas[i].tarefas[j]);
+
+			// Move o último elemento para a posição do removido
+			listas[i].tarefas[j] = listas[i].tarefas[listas[i].qtd_tarefas - 1];
+			listas[i].tarefas[listas[i].qtd_tarefas - 1] = NULL;
+			listas[i].qtd_tarefas--;
+
+			return 1; // Tarefa encontrada e removida
+		}
+	}
+	
+	return -1; // Tarefa nao encontrada
+}
 
 int find_lista(const char* nome) {
 	for (int i = 0; i < qtd_listas; i++) {
@@ -1544,12 +1559,14 @@ int find_lista(const char* nome) {
 
 
 void print_listas(){
+
+	printf("Lendo todas as listas (%d):\n", qtd_listas);
 	if (qtd_listas == 0) {
 		printf("Nenhuma lista criada.\n");
 		return;
 	}
 	for (int i = 0; i < qtd_listas; i++) {
-		printf("Lista %s contém %d tarefas:\n", listas[i].nome, listas[i].qtd_tarefas);
+		printf("Lista %s contém %d tarefas\n", listas[i].nome, listas[i].qtd_tarefas);
 	}
 }
 
