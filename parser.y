@@ -296,8 +296,67 @@ void free_id_list(struct id_list* node) {
 }	
 
 
+void salvar_dados(const char* filename) {
+    FILE* file = fopen(filename, "w");
+    if (!file) {
+        perror("Erro ao abrir arquivo para escrita");
+        return;
+    }
+
+    for (int i = 0; i < qtd_listas; i++) {
+        fprintf(file, "LISTA %s\n", listas[i].nome);
+        for (int j = 0; j < listas[i].qtd_tarefas; j++) {
+            fprintf(file, "TAREFA %s %d\n", 
+                listas[i].tarefas[j]->task_name,
+                listas[i].tarefas[j]->completed);
+        }
+        fprintf(file, "ENDLISTA\n");
+    }
+
+    fclose(file);
+}
+
+
+void carregar_dados(const char* filename) {
+    FILE* file = fopen(filename, "r");
+    if (!file) {
+        perror("Arquivo não encontrado. Será criado um novo.");
+        return;
+    }
+
+    char linha[256];
+    Lista* lista_atual = NULL;
+
+    while (fgets(linha, sizeof(linha), file)) {
+        char comando[20], arg1[100], arg2[100];
+        int status;
+
+        if (sscanf(linha, "LISTA %s", arg1) == 1) {
+            create_lista(arg1);
+            lista_atual = &listas[qtd_listas - 1];
+        } 
+        else if (sscanf(linha, "TAREFA %s %d", arg1, &status) == 2) {
+            if (lista_atual != NULL && lista_atual->qtd_tarefas < MAX_TAREFAS) {
+                Task* nova = malloc(sizeof(Task));
+                nova->task_name = strdup(arg1);
+                nova->completed = (status == 1);
+                lista_atual->tarefas[lista_atual->qtd_tarefas++] = nova;
+            }
+        } 
+        else if (strncmp(linha, "ENDLISTA", 8) == 0) {
+            lista_atual = NULL;
+        }
+    }
+
+    fclose(file);
+}
+
+
 int main(void) {
-    return yyparse();
+	carregar_dados("dados.txt");  
+	yyparse();                     // Executa o interpretador
+    salvar_dados("dados.txt");     // Salva no final
+    return 0;
 }
 
 void yyerror(const char *s) {
