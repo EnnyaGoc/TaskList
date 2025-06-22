@@ -7,14 +7,14 @@
 #include "parser.tab.h"  
 
 
-#define MAX_LISTAS 100
-#define MAX_TAREFAS 100
-
-
 struct id_list {
     char* id;
     struct id_list* next;
 };
+
+#define MAX_LISTAS 100
+#define MAX_TAREFAS 100
+#define MAX_FILENAME 256
 
 typedef struct {
 	char* task_name;
@@ -42,8 +42,8 @@ int create_lista(const char* nome);
 int toggle_task(int i, char* id_task);
 int remove_task(int i, char* id_task);
 
-
-
+void salvar_dados(int list_index);
+void carregar_dados(const char* filename);
 
 %}
 
@@ -56,7 +56,7 @@ int remove_task(int i, char* id_task);
 %type <idlist> N;
 
 %type <str> list_operations
-%token CREATE READ DELETE
+%token CREATE READ DELETE LOAD SAVE
 
 %type <str> task_operations
 %token ADD REMOVE TOGGLE
@@ -74,6 +74,8 @@ list_operations:
     CREATE { $$ = "CREATE"; }
 	| DELETE { $$ = "DELETE"; }
     | READ { $$ = "READ"; }
+	| LOAD {$$ = "LOAD"; }
+	| SAVE {$$ = "SAVE"; }
 ;
 
 list_command:
@@ -136,6 +138,72 @@ list_command:
 						}
 					}
 				} else {
+					printf("Erro. '%s' nao encontrada.\n", current->id);
+				}
+				current = current->next;
+			}
+		}
+		else if ($1 == "LOAD") {
+			struct id_list* current = $2;
+			while (current) {
+
+				// Checar se o numero máximo de listas foi alcançado
+				if (qtd_listas >= MAX_LISTAS) {
+					printf("Limite de listas atingido. Nao foi possivel carregar '%s'.\n", current->id);
+					current = current->next;
+					continue;
+				}
+
+				// Remover os 3 últimos caracteres (extensão) da string
+				// char* filename = strrchr(current->id, '.');
+				// if (filename != NULL) {
+				// 	*filename = '\0'; // Trunca a string no ponto
+				// }
+
+				printf("Carregando lista '%s'...\n", current->id);
+				int i = find_lista(current->id);
+
+				if (i == -1) {
+					
+					// Não há lista carregada com esse nome
+					carregar_dados(current->id);
+					printf("OK.\n");
+
+
+				} else {
+
+					// A lista já existe, perguntar se deseja sobrescrever
+					printf("A Lista '%s' ja existe em memória.\n", current->id);
+					printf("Deseja sobrescrever? (S|N)\n");
+					char overwrite = 'N';
+					scanf("%c", &overwrite);
+
+					if (overwrite == 'N' || overwrite == 'n') {
+						// Pula a lista atual
+						printf("Pulando %s.\n", current->id);
+					} else {
+						// Sobrescreve a lista existente
+						printf("Sobrescrevendo '%s'...", current->id);
+						carregar_dados(current->id);
+						printf("OK.\n");
+					}
+					
+				}
+
+				current = current->next;
+			}
+		} 
+		else if ($1 == "SAVE") {
+
+			struct id_list* current = $2;
+			while (current) {
+				printf("Guardando '%s'...", current->id);
+				int i = find_lista(current->id);
+
+				if (i != -1) {
+					salvar_dados(i);
+					printf("OK.\n");
+				} else{
 					printf("Erro. '%s' nao encontrada.\n", current->id);
 				}
 				current = current->next;
@@ -296,66 +364,75 @@ void free_id_list(struct id_list* node) {
 }	
 
 
-void salvar_dados(const char* filename) {
+void salvar_dados(int list_index) {
+	char filename[MAX_FILENAME];
+	snprintf(filename, MAX_FILENAME,  "%s.csv", listas[list_index].nome);
     FILE* file = fopen(filename, "w");
     if (!file) {
         perror("Erro ao abrir arquivo para escrita");
         return;
     }
 
-    for (int i = 0; i < qtd_listas; i++) {
-        fprintf(file, "LISTA %s\n", listas[i].nome);
-        for (int j = 0; j < listas[i].qtd_tarefas; j++) {
-            fprintf(file, "TAREFA %s %d\n", 
-                listas[i].tarefas[j]->task_name,
-                listas[i].tarefas[j]->completed);
-        }
-        fprintf(file, "ENDLISTA\n");
-    }
-
-    fclose(file);
+	for (int j = 0; j < listas[list_index].qtd_tarefas; j++) {
+		fprintf(file, "%s,%d\n", listas[list_index].tarefas[j]->task_name, listas[list_index].tarefas[j]->completed);
+	}
+    fclose(file);	
 }
 
 
-void carregar_dados(const char* filename) {
+void carregar_dados(const char*  list_name) {
+
+	char filename[MAX_FILENAME];
+	snprintf(filename, MAX_FILENAME, "%s.csv", list_name);
+	
     FILE* file = fopen(filename, "r");
     if (!file) {
-        perror("Arquivo não encontrado. Será criado um novo.");
+        perror("Arquivo não encontrado. Abortando...");
         return;
     }
 
-    char linha[256];
-    Lista* lista_atual = NULL;
+	char linha[256];
+	int n_tasks = 0;
+	
+	// Aponta para a nova lista
+	Lista* new_lista = &listas[qtd_listas];
+
+	new_lista->nome = strdup(list_name);
+	new_lista->qtd_tarefas = 0;
+
 
     while (fgets(linha, sizeof(linha), file)) {
-        char comando[20], arg1[100], arg2[100];
-        int status;
+        linha[strcspn(linha, "\n")] = '\0';  // remove o \n do final
 
-        if (sscanf(linha, "LISTA %s", arg1) == 1) {
-            create_lista(arg1);
-            lista_atual = &listas[qtd_listas - 1];
-        } 
-        else if (sscanf(linha, "TAREFA %s %d", arg1, &status) == 2) {
-            if (lista_atual != NULL && lista_atual->qtd_tarefas < MAX_TAREFAS) {
-                Task* nova = malloc(sizeof(Task));
-                nova->task_name = strdup(arg1);
-                nova->completed = (status == 1);
-                lista_atual->tarefas[lista_atual->qtd_tarefas++] = nova;
-            }
-        } 
-        else if (strncmp(linha, "ENDLISTA", 8) == 0) {
-            lista_atual = NULL;
+        char* nome_tarefa = strtok(linha, ",");
+        char* completed_str = strtok(NULL, ",");
+
+        if (!nome_tarefa || !completed_str) {
+            return; // Formato inválido
         }
-    }
 
+        Task* nova_tarefa = malloc(sizeof(Task));
+        if (!nova_tarefa) {
+            perror("Erro ao alocar tarefa");
+			return;
+        }
+
+        nova_tarefa->task_name = strdup(nome_tarefa);
+        nova_tarefa->completed = atoi(completed_str) != 0;
+
+		new_lista->qtd_tarefas++;
+        new_lista->tarefas[new_lista->qtd_tarefas] = nova_tarefa;
+	}
     fclose(file);
+	
+	qtd_listas++;
 }
 
 
 int main(void) {
-	carregar_dados("dados.txt");  
+	/* carregar_dados("dados.txt");   */
 	yyparse();                     // Executa o interpretador
-    salvar_dados("dados.txt");     // Salva no final
+    /* salvar_dados("dados.txt");     // Salva no final */
     return 0;
 }
 
