@@ -418,10 +418,9 @@ void carregar_dados(const char*  list_name) {
         }
 
         nova_tarefa->task_name = strdup(nome_tarefa);
-        nova_tarefa->completed = atoi(completed_str) != 0;
+        nova_tarefa->completed = atoi(completed_str) == 1;
 
-		new_lista->qtd_tarefas++;
-        new_lista->tarefas[new_lista->qtd_tarefas] = nova_tarefa;
+        new_lista->tarefas[new_lista->qtd_tarefas++] = nova_tarefa;
 	}
     fclose(file);
 	
